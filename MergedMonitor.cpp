@@ -2,7 +2,8 @@
  * MergedMonitor.cpp
  *
  *  Created on: May 2, 2011
- *      Author: root
+ *      Author: Bernd Michael Helm <zonerama at helmundwalter.de>
+ *      GNU GPL v3
  */
 
 #include "MergedMonitor.h"

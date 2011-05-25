@@ -2,7 +2,8 @@
  * LinkedMonitor.cpp
  *
  *  Created on: May 3, 2011
- *      Author: root
+ *      Author: Bernd Michael Helm <zonerama at helmundwalter.de>
+ *      GNU GPL v3
  */
 
 #include "LinkedMonitor.h"

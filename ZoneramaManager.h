@@ -2,7 +2,8 @@
  * ZoneramaManager.h
  *
  *  Created on: May 2, 2011
- *      Author: root
+ *      Author: Bernd Michael Helm <zonerama at helmundwalter.de>
+ *      GNU GPL v3
  */
 
 #ifndef ZONERAMAMANAGER_H_

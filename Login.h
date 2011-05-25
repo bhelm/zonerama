@@ -2,7 +2,8 @@
  * Login.h
  *
  *  Created on: Jun 9, 2009
- *      Author: root
+ *      Author: Bernd Michael Helm <zonerama at helmundwalter.de>
+ *      GNU GPL v3
  */
 
 #ifndef LOGIN_H_
