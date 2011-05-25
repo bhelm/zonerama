@@ -20,6 +20,10 @@ LinkedMonitor::LinkedMonitor(int id, QString eventsDir)
 	m_outputImageHeight = -1;
 	m_outputImageWidth = -1;
 
+	m_holdLastPictureForSeconds = 0;
+
+	m_standByImagePath = "";
+
 }
 
 LinkedMonitor::~LinkedMonitor()
@@ -28,31 +32,37 @@ LinkedMonitor::~LinkedMonitor()
 }
 
 
+void LinkedMonitor::paintLastFrame(QPainter* painter)
+{
+	if(!m_myImage.isNull())
+		painter->drawImage(m_offsetHorizontal,m_offsetVertical,m_myImage);
+}
+
 void LinkedMonitor::paintFrame(QPainter* painter, zFrame frame)
 {
 	//we are requested to draw the same image again, no need to load it
 	if(m_lastFrame.eventId == frame.eventId && m_lastFrame.frameId == frame.frameId)
 	{
-		painter->drawImage(m_offsetHorizontal,m_offsetVertical,myImage);
+		painter->drawImage(m_offsetHorizontal,m_offsetVertical,m_myImage);
 	}else
 	{
 
 		QString filename = this->frameToFilename(frame);
 
-		myImage.load(filename);
+		m_myImage.load(filename);
 
-		if(myImage.isNull())
+		if(m_myImage.isNull())
 		{
 			qDebug() << "error loading image" << filename << "(" << frame.frameId <<")";
 			return;
 		}
 
-		if(m_outputImageHeight>1 && m_outputImageWidth>1 && (myImage.size().width() != m_outputImageWidth || myImage.size().height() != m_outputImageHeight))
+		if(m_outputImageHeight>1 && m_outputImageWidth>1 && (m_myImage.size().width() != m_outputImageWidth || m_myImage.size().height() != m_outputImageHeight))
 		{
-			myImage = myImage.scaled(m_outputImageWidth,m_outputImageHeight);
+			m_myImage = m_myImage.scaled(m_outputImageWidth,m_outputImageHeight);
 		}
 
-		painter->drawImage(m_offsetHorizontal,m_offsetVertical,myImage);
+		painter->drawImage(m_offsetHorizontal,m_offsetVertical,m_myImage);
 
 		if(m_deleteMergedFramesFromHDD)
 		{
@@ -60,6 +70,32 @@ void LinkedMonitor::paintFrame(QPainter* painter, zFrame frame)
 			myfile.remove();
 		}
 	}
+}
+
+void LinkedMonitor::paintStandByImage(QPainter* painter)
+{
+
+	if(!m_standBy.isNull())
+		painter->drawImage(m_offsetHorizontal,m_offsetVertical,m_standBy);
+
+}
+
+void LinkedMonitor::setStandByImagePath(QString m_standByImagePath)
+{
+
+	this->m_standByImagePath = m_standByImagePath;
+	m_standBy.load(m_standByImagePath);
+
+	if(m_standBy.isNull())
+	{
+		qDebug() << "Linkedmonitor" << m_linkedMonitorId << ": Cannot load image" << m_standByImagePath << ". file path correct and image valid?";
+	}
+
+	if(m_outputImageHeight>1 && m_outputImageWidth>1 && (m_standBy.size().width() != m_outputImageWidth || m_standBy.size().height() != m_outputImageHeight))
+	{
+		m_standBy = m_standBy.scaled(m_outputImageWidth,m_outputImageHeight);
+	}
+
 }
 
 QString LinkedMonitor::frameToFilename(zFrame frame)

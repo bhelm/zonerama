@@ -65,7 +65,32 @@ private:
 
     QDateTime m_processingStartTime;
 
+    int m_maxFPS;
+    int m_forceFPS;
+
 public:
+
+    int getForceFPS() const
+    {
+        return m_forceFPS;
+    }
+
+    int getMaxFPS() const
+    {
+        return m_maxFPS;
+    }
+
+    void setForceFPS(int m_forceFPS)
+    {
+        this->m_forceFPS = m_forceFPS;
+    }
+
+    void setMaxFPS(int m_maxFPS)
+    {
+        this->m_maxFPS = m_maxFPS;
+    }
+
+
     QHash<int, LinkedMonitor*> getLinkedMonitors() const
     {
         return m_linkedMonitors;

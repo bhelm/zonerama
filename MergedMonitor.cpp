@@ -13,6 +13,9 @@ MergedMonitor::MergedMonitor(int id,QString eventsDir)
 	m_eventsDir = eventsDir;
 
 	qDebug() << "MergedMonitor" << m_monitorId << "initialized";
+	m_maxFPS = 0;
+	m_forceFPS = 0;
+
 }
 
 bool MergedMonitor::generateMergedScene()
@@ -85,25 +88,25 @@ bool MergedMonitor::generateMergedScene()
 
 	QDateTime currentTime = QDateTime::currentDateTime();
 	QDateTime lastTime = currentTime;
-
+	QMap<int, zFrame> lastSecondFrame;
 
 	QSqlQuery frameD(m_db);
 	frameD.prepare("DELETE FROM Frames WHERE EventId = ? AND FrameId = ?");
-	count;
+	count = 0;
 	while (frameQ.next())
 	{
 		QDateTime timestamp = frameQ.value(2).toDateTime();
 
-		if(count<10 && timestamp.secsTo(currentTime) < (this->m_maxLength+this->m_maxTimeBetweenEvents*3))
+		if(count<10 && timestamp.secsTo(currentTime) < (this->m_maxLength+this->m_maxTimeBetweenEvents))
 		{
-			qDebug() << "oldest event is younger than max video length, exiting";
+			qDebug() << "oldest event is younger than maxLength+maxTimeBetweenEvents, exiting";
 			exit(0);
 		}
 
 		//if there is a huge gap between events, stop processing and leave it for the next run
 		if(lastTime.secsTo(timestamp) > m_maxTimeBetweenEvents)
 		{
-			qDebug() << "maxtime reached, quit after" << count << "frames";
+			qDebug() << "maxTimeBetweenEvents reached, quit after" << count << "frames";
 			break;
 		}
 
@@ -188,11 +191,12 @@ bool MergedMonitor::generateMergedScene()
 		//get max frames per monitor and initialize iterators
 		foreach(LinkedMonitor* monitor, m_linkedMonitors)
 			{
-				QMap<int, zFrame>* currentMonitor = sortedMonitors.value(
-						monitor->getLinkedMonitorId());
+				QMap<int, zFrame>* currentMonitor = sortedMonitors.value(monitor->getLinkedMonitorId());
 
 				if (currentMonitor->count() > maxFrames)
+				{
 					maxFrames = currentMonitor->count();
+				}
 
 				QMapIterator<int, zFrame>* miter =
 						new QMapIterator<int, zFrame> (*currentMonitor);
@@ -204,10 +208,21 @@ bool MergedMonitor::generateMergedScene()
 					}*/
 			}
 
+		if(m_maxFPS != 0 && maxFrames > m_maxFPS)
+		{
+			maxFrames = m_maxFPS;
+		}
+
+		if(m_forceFPS != 0)
+		{
+			maxFrames = m_forceFPS;
+		}
+
 
 		/*
 		 * this loop syncronizes the frames for one second, i.e. if cam1 has 2 and cam2 has 4 frames:
 		 * Cam	Frame
+		 * ------
 		 * 1	1
 		 * 2	1
 		 * ------
@@ -244,7 +259,6 @@ bool MergedMonitor::generateMergedScene()
 			mFrames.append(mFrame);
 		}
 
-
 		foreach(LinkedMonitor* monitor, m_linkedMonitors)
 			{
 			int lastFrame=-1;
@@ -253,7 +267,22 @@ bool MergedMonitor::generateMergedScene()
 						monitor->getLinkedMonitorId());
 				int frameCount = currentMonitor->count();
 				if (frameCount == 0)
+				{
+						if(lastSecondFrame.contains(monitor->getLinkedMonitorId()))
+						{
+							zFrame lastFrame = lastSecondFrame.value(monitor->getLinkedMonitorId());
+
+							if(lastFrame.timestamp.secsTo(timestamp) <= monitor->getHoldLastPictureForSeconds())
+							{
+								for (int i = 0; i < maxFrames; i++)
+								{
+									mFrames.at(i)->frames.append(lastFrame);
+								}
+							}
+						}
+
 					continue;
+				}
 				float frameStep = (float) frameCount / maxFrames;
 				//qDebug() << "iters" << monitor->getLinkedMonitorId();
 
@@ -274,9 +303,14 @@ bool MergedMonitor::generateMergedScene()
 						lastFrame=floor(virtualFrame);
 					}
 
-					zFrame test = currentIterator->value();
+					//zFrame test = currentIterator->value();
 					//qDebug() << "calc: " << currentIterator->value().frameId << virtualFrame << frameStep;
 					mFrames.at(i)->frames.append(currentIterator->value());
+
+
+					//lastSecondFrame.remove(monitor->getLinkedMonitorId());
+					lastSecondFrame.insert(monitor->getLinkedMonitorId(),currentIterator->value());
+
 					virtualFrame += frameStep;
 				}
 				//qDebug() << "Frame"<< currentIterator->value().monitor << currentIterator->key();
@@ -398,10 +432,28 @@ bool MergedMonitor::renderMergedScene()
 
 		QPainter* painter = new QPainter(&output);
 
+		//create a list with all monitor ids, so we know after rendering the frames which monitors got no image.
+		QMap<int,int> monitorCheck;
+		foreach(LinkedMonitor* lmoni, m_linkedMonitors)
+		{
+			monitorCheck.insert(lmoni->getLinkedMonitorId(),lmoni->getLinkedMonitorId());
+		}
+
+		//render the frames
 		foreach(zFrame frame, mframe->frames)
 		{
 			m_linkedMonitors.value(frame.monitor)->paintFrame(painter,frame);
+			monitorCheck.remove(frame.monitor);
 		}
+
+		foreach(int frameLessMonitorId, monitorCheck)
+		{
+			m_linkedMonitors.value(frameLessMonitorId)->paintStandByImage(painter);
+		}
+
+
+
+
 		QString fileName = m_mergedEventDir;
 		fileName.append(QString("/%1-capture.jpg").arg(count,3,10,QLatin1Char('0')));
 		if(output.save(fileName,"JPEG",70))

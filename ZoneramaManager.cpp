@@ -123,6 +123,8 @@ bool ZoneramaManager::readConfig()
 		myMonitor->setDeleteFramesAfterGenerateVideoFromDB(monitor.property("deleteFramesAfterGenerateVideoFromDB").toBool());
 		myMonitor->setDeleteFramesAfterGenerateVideoFromHDD(monitor.property("deleteFramesAfterGenerateVideoFromHDD").toBool());
 
+		if(monitor.property("maxFPS").isValid()) myMonitor->setMaxFPS(monitor.property("maxFPS").toInt32());
+		if(monitor.property("forceFPS").isValid()) myMonitor->setForceFPS(monitor.property("forceFPS").toInt32());
 
 		//parse linkedmonitors
 		QScriptValue linkedMonitors = monitor.property("linkedMonitors");
@@ -142,6 +144,10 @@ bool ZoneramaManager::readConfig()
 				moni->setDeleteMergedFramesFromDB(linkedMonitor.property("deleteMergedFramesFromDB").toBool());
 				moni->setDeleteMergedFramesFromHDD(linkedMonitor.property("deleteMergedFramesFromHDD").toBool());
 
+				if(linkedMonitor.property("holdLastPictureForSeconds").isValid())
+					moni->setHoldLastPictureForSeconds(linkedMonitor.property("holdLastPictureForSeconds").toInt32());
+				if(linkedMonitor.property("standByImagePath").isValid())
+					moni->setStandByImagePath(linkedMonitor.property("standByImagePath").toString());
 			}
 
 
