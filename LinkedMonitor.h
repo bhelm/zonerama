@@ -30,6 +30,9 @@ public:
 
 	QString frameToFilename(zFrame frame);
 
+	void deleteFrameFromHDD(zFrame frame);
+	void deleteFrameFromHDD(QString filename);
+
 
 private:
 	int m_linkedMonitorId;

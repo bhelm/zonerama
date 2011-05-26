@@ -168,11 +168,13 @@ bool MergedMonitor::generateMergedScene()
 					frameD.exec();
 				}
 
-				if(evilMonitorIHateYou->getDeleteMergedFramesFromDB())
+				evilMonitorIHateYou->deleteFrameFromHDD(nframe);
+				/* removed that because we have no a small function for it.
+				 * if(evilMonitorIHateYou->getDeleteMergedFramesFromDB())
 				{
 					QFile file(evilMonitorIHateYou->frameToFilename(nframe));
 					file.remove();
-				}
+				}*/
 
 				continue;
 			}
@@ -191,23 +193,31 @@ bool MergedMonitor::generateMergedScene()
 		QHash<int, QMapIterator<int, zFrame>*> iters;
 		//get max frames per monitor and initialize iterators
 		foreach(LinkedMonitor* monitor, m_linkedMonitors)
+		{
+			QMap<int, zFrame>* currentMonitor = sortedMonitors.value(monitor->getLinkedMonitorId());
+
+			if (currentMonitor->count() > maxFrames)
 			{
-				QMap<int, zFrame>* currentMonitor = sortedMonitors.value(monitor->getLinkedMonitorId());
+				maxFrames = currentMonitor->count();
+			}
 
-				if (currentMonitor->count() > maxFrames)
-				{
-					maxFrames = currentMonitor->count();
-				}
-
-				QMapIterator<int, zFrame>* miter =
-						new QMapIterator<int, zFrame> (*currentMonitor);
-				iters.insert(monitor->getLinkedMonitorId(), miter);
-				/*foreach(zFrame frame, *currentMonitor)
+			QMapIterator<int, zFrame>* miter =
+					new QMapIterator<int, zFrame> (*currentMonitor);
+			iters.insert(monitor->getLinkedMonitorId(), miter);
+			/*foreach(zFrame frame, *currentMonitor)
 					{
 						qDebug() << frame.monitor << frame.frameId
 								<< frame.timestamp;
 					}*/
-			}
+		}
+
+		if(maxFrames == -1)
+		{
+			//oho, whats that?
+			continue;
+		}
+
+		int sourceMaxFrames = maxFrames;
 
 		if(m_maxFPS != 0 && maxFrames > m_maxFPS)
 		{
@@ -261,63 +271,83 @@ bool MergedMonitor::generateMergedScene()
 		}
 
 		foreach(LinkedMonitor* monitor, m_linkedMonitors)
-			{
+		{
 			int lastFrame=-1;
 			//qDebug() << "processing Monitor" << monitor->getLinkedMonitorId();
-				QMap<int, zFrame>* currentMonitor = sortedMonitors.value(
-						monitor->getLinkedMonitorId());
-				int frameCount = currentMonitor->count();
-				if (frameCount == 0)
+			QMap<int, zFrame>* currentMonitor = sortedMonitors.value(
+					monitor->getLinkedMonitorId());
+			int frameCount = currentMonitor->count();
+			if (frameCount == 0)
+			{
+				if(lastSecondFrame.contains(monitor->getLinkedMonitorId()))
 				{
-						if(lastSecondFrame.contains(monitor->getLinkedMonitorId()))
-						{
-							zFrame lastFrame = lastSecondFrame.value(monitor->getLinkedMonitorId());
+					zFrame lastFrame = lastSecondFrame.value(monitor->getLinkedMonitorId());
 
-							if(lastFrame.timestamp.secsTo(timestamp) <= monitor->getHoldLastPictureForSeconds())
-							{
-								for (int i = 0; i < maxFrames; i++)
-								{
-									mFrames.at(i)->frames.append(lastFrame);
-								}
-							}
-						}
-
-					continue;
-				}
-				float frameStep = (float) frameCount / maxFrames;
-				//qDebug() << "iters" << monitor->getLinkedMonitorId();
-
-				if(!iters.contains(monitor->getLinkedMonitorId()))
-				{
-					qDebug() << "no iterator for " << monitor->getLinkedMonitorId();
-				}
-				QMapIterator<int, zFrame>* currentIterator = iters.value(
-						monitor->getLinkedMonitorId());
-
-
-				float virtualFrame = 0.0;
-				for (int i = 0; i < maxFrames; i++)
-				{
-					if (currentIterator->hasNext() && lastFrame!=floor(virtualFrame))
+					if(lastFrame.timestamp.secsTo(timestamp) <= monitor->getHoldLastPictureForSeconds())
 					{
-						currentIterator->next();
-						lastFrame=floor(virtualFrame);
+						for (int i = 0; i < maxFrames; i++)
+						{
+							mFrames.at(i)->frames.append(lastFrame);
+						}
+					}
+				}
+
+				continue;
+			}
+			float frameStep = (float) frameCount / maxFrames;
+			//qDebug() << "iters" << monitor->getLinkedMonitorId();
+
+			if(!iters.contains(monitor->getLinkedMonitorId()))
+			{
+				qDebug() << "no iterator for " << monitor->getLinkedMonitorId();
+			}
+			QMapIterator<int, zFrame>* currentIterator = iters.value(
+					monitor->getLinkedMonitorId());
+
+
+			float virtualFrame = 0.0;
+			for (int i = 0; i < maxFrames; i++)
+			{
+				if (currentIterator->hasNext() && lastFrame!=floor(virtualFrame))
+				{
+					currentIterator->next();
+					lastFrame=floor(virtualFrame);
+				}
+
+				//zFrame test = currentIterator->value();
+				//qDebug() << "calc: " << currentIterator->value().frameId << virtualFrame << frameStep;
+				mFrames.at(i)->frames.append(currentIterator->value());
+
+
+				//lastSecondFrame.remove(monitor->getLinkedMonitorId());
+				lastSecondFrame.insert(monitor->getLinkedMonitorId(),currentIterator->value());
+
+				virtualFrame += frameStep;
+			}
+
+			//if the framerate is limited (with maxFPS or forceFPS), this takes care of deleting the remaining, not-rendered images if the delete options are set.
+			for(int i=maxFrames;i<sourceMaxFrames;i++)
+			{
+				if (currentIterator->hasNext())
+				{
+					currentIterator->next();
+					zFrame dframe = currentIterator->value();
+					if(monitor->getDeleteMergedFramesFromDB())
+					{
+						//qDebug() << "Deleting frame" << frame.frameId << "from event" << frame.eventId;
+						frameD.bindValue(0,dframe.eventId);
+						frameD.bindValue(1,dframe.frameId);
+						frameD.exec();
 					}
 
-					//zFrame test = currentIterator->value();
-					//qDebug() << "calc: " << currentIterator->value().frameId << virtualFrame << frameStep;
-					mFrames.at(i)->frames.append(currentIterator->value());
-
-
-					//lastSecondFrame.remove(monitor->getLinkedMonitorId());
-					lastSecondFrame.insert(monitor->getLinkedMonitorId(),currentIterator->value());
-
-					virtualFrame += frameStep;
+					monitor->deleteFrameFromHDD(dframe);
 				}
-				//qDebug() << "Frame"<< currentIterator->value().monitor << currentIterator->key();
-
-				//	zFrame currentFrame =  currentIterator->value();
 			}
+
+			//qDebug() << "Frame"<< currentIterator->value().monitor << currentIterator->key();
+
+			//	zFrame currentFrame =  currentIterator->value();
+		}
 
 
 
@@ -326,11 +356,11 @@ bool MergedMonitor::generateMergedScene()
 
 		//clean up sortedmonitors for next second
 		foreach(LinkedMonitor* monitor, m_linkedMonitors)
-			{
-				QMap<int, zFrame>* currentMonitor = sortedMonitors.value(
-						monitor->getLinkedMonitorId());
-				currentMonitor->clear();
-			}
+		{
+			QMap<int, zFrame>* currentMonitor = sortedMonitors.value(
+					monitor->getLinkedMonitorId());
+			currentMonitor->clear();
+		}
 
 		count++;
 	}
@@ -358,7 +388,7 @@ QString MergedMonitor::createEventDir(zMergedFrame* firstFrame)
 	{
 		if(!monitorDir.mkpath((filename)))
 		{
-			qDebug() << "cannot creat Monitordir, exit" << filename;
+			qDebug() << "cannot create Monitordir" << filename << ". Does the user that runs Zonerama have permission to create that directory? Try to run Zonerama as Root if unsure. -> exit";
 			exit(-1);
 		}
 	}
@@ -460,7 +490,7 @@ bool MergedMonitor::renderMergedScene()
 		if(output.save(fileName,"JPEG",70))
 		{
 			//if we would delete the inserted frames, just dont insert them. save the envoirement.
-			if(!m_deleteFramesAfterGenerateVideoFromDB)
+			if(m_generateVideo == true && m_deleteFramesAfterGenerateVideoFromDB == false)
 			{
 				frameI.bindValue(0,count);
 				frameI.bindValue(1,mframe->timestamp);

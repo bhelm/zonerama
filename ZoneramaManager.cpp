@@ -109,15 +109,6 @@ bool ZoneramaManager::readConfig()
 		myMonitor->setOutputImageWidth(monitor.property("outputImageWidth").toInt32());
 		myMonitor->setMaxLength(monitor.property("maxLength").toInt32());
 		myMonitor->setMaxTimeBetweenEvents(monitor.property("maxTimeBetweenEvents").toInt32());
-
-
-		//delete options
-
-		/*"generateVideo": true,
-		"ffmpegCommand": "ffmpeg -f image2 -i %1 %2",
-		"deleteFramesAfterGenerateVideoFromDB": true,
-		"deleteFramesAfterGenerateVideoFromHDD": true,*/
-
 		myMonitor->setGenerateVideo(monitor.property("generateVideo").toBool());
 		myMonitor->setFfmpegCommand(monitor.property("ffmpegCommand").toString());
 		myMonitor->setFfmpegArguments(monitor.property("ffmpegArguments").toString());

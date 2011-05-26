@@ -65,11 +65,26 @@ void LinkedMonitor::paintFrame(QPainter* painter, zFrame frame)
 
 		painter->drawImage(m_offsetHorizontal,m_offsetVertical,m_myImage);
 
-		if(m_deleteMergedFramesFromHDD)
-		{
-			QFile myfile(filename);
-			myfile.remove();
-		}
+		this->deleteFrameFromHDD(filename);
+	}
+}
+
+
+void LinkedMonitor::deleteFrameFromHDD(QString filename)
+{
+	if(m_deleteMergedFramesFromHDD)
+	{
+		QFile myfile(filename);
+		myfile.remove();
+	}
+}
+
+void LinkedMonitor::deleteFrameFromHDD(zFrame frame)
+{
+	if(m_deleteMergedFramesFromHDD)
+	{
+		QString filename = this->frameToFilename(frame);
+		this->deleteFrameFromHDD(filename);
 	}
 }
 
