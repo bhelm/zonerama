@@ -25,8 +25,10 @@ ZoneramaManager::ZoneramaManager()
 	{
 		qDebug() << m_zoneminderDbLogin.driver;
 		monitor->connectDB(m_zoneminderDbLogin);
-		monitor->generateMergedScene();
-		monitor->renderMergedScene();
+		if(monitor->generateMergedScene())
+		{
+			monitor->renderMergedScene();
+		}
 	}
 }
 

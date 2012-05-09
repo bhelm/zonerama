@@ -85,6 +85,7 @@ bool MergedMonitor::generateMergedScene()
 	{
 		qDebug() << "error executing frame query" << query
 				<< m_db.lastError().text();
+		return false;
 	}
 
 	QDateTime currentTime = QDateTime::currentDateTime();
@@ -101,7 +102,7 @@ bool MergedMonitor::generateMergedScene()
 		if(count<10 && timestamp.secsTo(currentTime) < (this->m_maxLength+this->m_maxTimeBetweenEvents))
 		{
 			qDebug() << "oldest event is younger than maxLength+maxTimeBetweenEvents, exiting";
-			exit(0);
+			return false;
 		}
 
 		//if there is a huge gap between events, stop processing and leave it for the next run

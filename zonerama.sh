@@ -6,6 +6,6 @@ cd /root/zonerama
 for (( ; ; ))
 do
  	time ./Zonerama
-	sleep 60 
+	sleep 10 
 done
 
