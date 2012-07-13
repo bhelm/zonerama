@@ -8,6 +8,8 @@
 
 #include "MergedMonitor.h"
 
+#include <QFile>
+
 MergedMonitor::MergedMonitor(int id,QString eventsDir)
 {
 	m_monitorId = id;
@@ -378,6 +380,21 @@ bool MergedMonitor::generateMergedScene()
 
 
 
+void MergedMonitor::createEventSymlink(int eventId, zMergedFrame *firstFrame)
+{
+    QDir linkDir(this->m_eventsDir);
+    linkDir.cd(QString("%1").arg(this->m_monitorId));
+    
+    QString datePath = firstFrame->timestamp.toString("yy/MM/dd");
+    QString linkTarget = firstFrame->timestamp.toString("hh/mm/ss");
+    linkDir.cd(datePath);
+    
+    QString linkPath = linkDir.absoluteFilePath(QString(".%1").arg(eventId));
+    qDebug() << "Going to create symlink" << linkPath << "pointing to" << linkTarget;
+    
+    QFile::link(linkTarget, linkPath);
+}
+
 QString MergedMonitor::createEventDir(zMergedFrame* firstFrame)
 {
 	QString filename = this->m_eventsDir;
@@ -445,6 +462,9 @@ bool MergedMonitor::renderMergedScene()
 
 	m_mergedEventId = createEvent(m_mergedScene.first(),m_mergedScene.last(),m_mergedScene.count());
 
+	if(!m_deleteFramesAfterGenerateVideoFromHDD)
+    		createEventSymlink(m_mergedEventId, m_mergedScene.first());
+
 	QSqlQuery frameI(m_db);
 	frameI.prepare(QString("INSERT INTO Frames SET EventId = '%1', FrameId = ?, TimeStamp = ?").arg(m_mergedEventId));
 
@@ -491,7 +511,7 @@ bool MergedMonitor::renderMergedScene()
 		if(output.save(fileName,"JPEG",70))
 		{
 			//if we would delete the inserted frames, just dont insert them. save the envoirement.
-			if(m_generateVideo == true && m_deleteFramesAfterGenerateVideoFromDB == false)
+			if(!m_deleteFramesAfterGenerateVideoFromDB)
 			{
 				frameI.bindValue(0,count);
 				frameI.bindValue(1,mframe->timestamp);

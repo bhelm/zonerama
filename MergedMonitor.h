@@ -41,6 +41,8 @@ public:
 private:
     int createEvent(zMergedFrame *firstFrame, zMergedFrame *lastFrame, int frameCount);
     QString createEventDir(zMergedFrame *firstFrame);
+    /** Creates necessary symbolic link for the event */
+    void createEventSymlink(int eventId, zMergedFrame *firstFrame);
 private:
     QHash<int,LinkedMonitor*> m_linkedMonitors;
     int m_monitorId;
