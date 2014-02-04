@@ -67,7 +67,8 @@ bool MergedMonitor::generateMergedScene()
 	query = query.arg(monitorList).arg(this->m_maxLength);
 
 	frameQ.prepare(query);
-
+	qDebug() << "sorting monitors";
+	
 	QMap<int, QMap<int, zFrame>*> sortedMonitors;
 
 	int count = 0;
@@ -80,7 +81,7 @@ bool MergedMonitor::generateMergedScene()
 		sortedMonitors.insert(monitor->getLinkedMonitorId(), monitorMap);
 
 		count++;
-		qDebug() << monitor;
+		//qDebug() << monitor;
 	}
 
 	if (!frameQ.exec())
@@ -97,6 +98,7 @@ bool MergedMonitor::generateMergedScene()
 	QSqlQuery frameD(m_db);
 	frameD.prepare("DELETE FROM Frames WHERE EventId = ? AND FrameId = ?");
 	count = 0;
+	qDebug() << "processing frames";
 	while (frameQ.next())
 	{
 		QDateTime timestamp = frameQ.value(2).toDateTime();
@@ -125,6 +127,7 @@ bool MergedMonitor::generateMergedScene()
 		foreach(QString eventTime, eventStartTimesString)
 		{
 			//qDebug() << eventTime << QDateTime::fromString(eventTime,"yyyy-MM-dd hh:mm:ss");
+			//qDebug() << eventTime << i << QDateTime::fromString(eventTime,"yyyy-MM-dd hh:mm:ss");
 			eventStartTimes.append(QDateTime::fromString(eventTime,"yyyy-MM-dd hh:mm:ss"));
 		}
 		// monitorid, frameid
@@ -364,7 +367,7 @@ bool MergedMonitor::generateMergedScene()
 					monitor->getLinkedMonitorId());
 			currentMonitor->clear();
 		}
-
+		//qDebug() << "count: " << count;
 		count++;
 	}
 
