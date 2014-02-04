@@ -16,6 +16,7 @@ MergedMonitor::MergedMonitor(int id,QString eventsDir)
 	m_eventsDir = eventsDir;
 
 	qDebug() << "MergedMonitor" << m_monitorId << "initialized";
+	qDebug() << "MergedMonitorDir" << m_eventsDir << "initialized";
 	m_maxFPS = 0;
 	m_forceFPS = 0;
 
@@ -112,7 +113,7 @@ bool MergedMonitor::generateMergedScene()
 		//if there is a huge gap between events, stop processing and leave it for the next run
 		if(lastTime.secsTo(timestamp) > m_maxTimeBetweenEvents)
 		{
-			qDebug() << "maxTimeBetweenEvents reached, quit after" << count << "frames";
+			qDebug() << "maxTimeBetweenEvents reached, quit after" << count << "seconds of video.";
 			break;
 		}
 
@@ -235,6 +236,11 @@ bool MergedMonitor::generateMergedScene()
 			maxFrames = m_forceFPS;
 		}
 
+		//Determine highest frame rate and compute intra-second time delta
+		if (m_delta > (1.0 / (float) maxFrames))
+		{
+			m_delta = 1.0 / (float) maxFrames;
+		}
 
 		/*
 		 * this loop syncronizes the frames for one second, i.e. if cam1 has 2 and cam2 has 4 frames:
@@ -452,7 +458,9 @@ int MergedMonitor::createEvent(zMergedFrame* firstFrame,zMergedFrame* lastFrame,
 }
 
 bool MergedMonitor::renderMergedScene()
-{
+{ 
+	float frameDelta = 0;
+
 	if(m_mergedScene.count()==0)
 	{
 		qDebug() << "mergedScene is empty!";
@@ -469,7 +477,7 @@ bool MergedMonitor::renderMergedScene()
     		createEventSymlink(m_mergedEventId, m_mergedScene.first());
 
 	QSqlQuery frameI(m_db);
-	frameI.prepare(QString("INSERT INTO Frames SET EventId = '%1', FrameId = ?, TimeStamp = ?").arg(m_mergedEventId));
+	frameI.prepare(QString("INSERT INTO Frames SET EventId = '%1', FrameId = ?, TimeStamp = ?, Delta = ?").arg(m_mergedEventId));
 
 	QSqlQuery frameD(m_db);
 	frameD.prepare("DELETE FROM Frames WHERE EventId = ? AND FrameId = ?");
@@ -513,12 +521,14 @@ bool MergedMonitor::renderMergedScene()
 		fileName.append(QString("/%1-capture.jpg").arg(count,3,10,QLatin1Char('0')));
 		if(output.save(fileName,"JPEG",70))
 		{
-			//if we would delete the inserted frames, just dont insert them. save the envoirement.
+			//if we would delete the inserted frames, just don't insert them. save the envoirement.
 			if(!m_deleteFramesAfterGenerateVideoFromDB)
 			{
 				frameI.bindValue(0,count);
 				frameI.bindValue(1,mframe->timestamp);
+				frameI.bindValue(2,frameDelta);
 				frameI.exec();
+				frameDelta = frameDelta + m_delta;
 			}
 
 			foreach(zFrame frame, mframe->frames)

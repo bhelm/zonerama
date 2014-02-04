@@ -70,6 +70,7 @@ private:
 
     int m_maxFPS;
     int m_forceFPS;
+    float m_delta;
 
 public:
 
