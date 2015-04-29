@@ -6,11 +6,7 @@ Zonerama version 1.1b is compatible with Zoneminder 1.26 while older versions we
 
 make sure you read ALL wiki articles carefully if you have problems.
 
-- [FAQ](faq)
-- [Installation](install)
-- [Configuration](config)
-- [Requirements](requirements)
-- [How it Works](howitworks)
+https://github.com/bhelm/zonerama/wiki
 
 ## Screenshots
 
