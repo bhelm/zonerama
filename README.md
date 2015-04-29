@@ -8,6 +8,8 @@ make sure you read ALL wiki articles carefully if you have problems.
 
 https://github.com/bhelm/zonerama/wiki
 
+![Downloads](https://drive.google.com/folderview?id=0B3HI-l7KX1T7cUlYaWFKd2I1Vms&usp=sharing)
+
 ## Screenshots
 
 two cameras merged into one:
